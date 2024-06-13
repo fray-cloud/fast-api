@@ -1,1 +1,1 @@
-web: uvicorn main:app --host=0.0.0.0
+web: uvicorn main:app --host=fast-api-production-d255.up.railway.app
