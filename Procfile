@@ -1,1 +1,1 @@
-web: uvicorn main:app --host=fast-api-production-d255.up.railway.app
+web: uvicorn main:app --bind [::]
