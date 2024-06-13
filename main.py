@@ -14,7 +14,8 @@ encoding = 'GsGMbaDETPd05r326o0ICejVO%2BU%2FXwTQES1Tf8Vl3wL0fuYEMxV%2F3Ai2pLmcPF
 origins = [
     'http://localhost:3000',
     'http://localhost:3001',
-    'http://172.30.1.80:3000'
+    'http://172.30.1.80:3000',
+    "https://mini-project-mocha.vercel.app"
 ]
 
 app.add_middleware(
