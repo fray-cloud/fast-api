@@ -7,11 +7,26 @@ import xmltodict
 
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def on_app_start() :
+    model.mongodb.connect()
+    try:
+        await model.mongodb.engine.database.create_collection('sido')
+    except:
+        print(await model.mongodb.engine.database.list_collection_names())
+        
+    
+@app.on_event("shutdown")
+async def on_app_shutdown():
+	model.mongodb.close()
+
 endpoint = 'http://apis.data.go.kr/1543061/abandonmentPublicSrvc'
 encoding = 'GsGMbaDETPd05r326o0ICejVO%2BU%2FXwTQES1Tf8Vl3wL0fuYEMxV%2F3Ai2pLmcPFT9yWXTlE9DwTf7H1dR3ezWgg%3D%3D'
 
 origins = [
     'http://localhost:3000',
+    'http://localhost:3001',
     'http://172.30.1.80:3000'
 ]
 
@@ -24,8 +39,8 @@ app.add_middleware(
 )
 
 @app.get("/")
-def get_root():
-    return {"Hello": "World"}
+async def get_root():
+    return {'hello' : 'world'}
 
 def change_json(data : requests.Response, error_code : dict):
     res = {}
@@ -69,16 +84,17 @@ def change_json(data : requests.Response, error_code : dict):
         return data_json
 
 @app.get("/sido", response_model=model.SidoOut)
-def get_sido(item : model.SidoIn = Depends()):
+async def get_sido(item : model.SidoIn = Depends()):
     res = requests.get(
         f'{endpoint}/sido?serviceKey={encoding}',
         params=item.model_dump(by_alias=True)
         )
 
     error_code = {}
-    for key in model.SidoOut.model_fields.keys():
+    for key in model.SidoOut.Response.Items.item.model_fields.keys():
         error_code.update({key : 'error'})
     res_json = change_json(res, error_code)
+    # await model.mongodb.engine.save()
     return res_json
 
 
@@ -91,9 +107,12 @@ def get_sigungu(item : model.SigunguIn = Depends()):
     
     error_code = {}
     no_data_code = {}
-    for key in model.SigunguOut.model_fields.keys():
+    for key in model.SigunguOut.Response.Items.item.model_fields.keys():
         error_code.update({key : 'error'})
-        no_data_code.update({key : 'nodata'})
+        if key == "orgdownNm" :
+            no_data_code.update({key : '전체'})
+        else :
+            no_data_code.update({key : '-1'})
     
     code = error_code if item.upr_cd != '-1' else no_data_code
     print('sigungu item.upr_cd', item.upr_cd, code)
@@ -110,9 +129,12 @@ def get_kind(item : model.KindIn = Depends()):
     
     error_code = {}
     no_data_code = {}
-    for key in model.KindOut.model_fields.keys():
+    for key in model.KindOut.Response.Items.item.model_fields.keys():
         error_code.update({key : 'error'})
-        no_data_code.update({key : 'nodata'})
+        if key == "knm" :
+            no_data_code.update({key : '전체'})
+        else :
+            no_data_code.update({key : '-1'})
     
     code = error_code if item.up_kind_cd != '-1' else no_data_code
     print(item.up_kind_cd, code)

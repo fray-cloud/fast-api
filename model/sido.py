@@ -1,5 +1,6 @@
 from .default import DefaultIn, DefaultOut, BaseModel
 from .page import PageIn, PageOut
+from odmantic import Model, Field
 
 class SidoIn(DefaultIn, PageIn):
     pass

@@ -1,6 +1,7 @@
 from .default import Enum, BaseModel, DefaultIn, DefaultOut
 
 class UpKind(str, Enum):
+    all = -1
     dog = 417000
     cat = 422400
     etc = 429900
