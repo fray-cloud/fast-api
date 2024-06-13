@@ -8,19 +8,6 @@ import xmltodict
 
 app = FastAPI()
 
-@app.on_event("startup")
-async def on_app_start() :
-    model.mongodb.connect()
-    try:
-        await model.mongodb.engine.database.create_collection('sido')
-    except:
-        print(await model.mongodb.engine.database.list_collection_names())
-        
-    
-@app.on_event("shutdown")
-async def on_app_shutdown():
-	model.mongodb.close()
-
 endpoint = 'http://apis.data.go.kr/1543061/abandonmentPublicSrvc'
 encoding = 'GsGMbaDETPd05r326o0ICejVO%2BU%2FXwTQES1Tf8Vl3wL0fuYEMxV%2F3Ai2pLmcPFT9yWXTlE9DwTf7H1dR3ezWgg%3D%3D'
 
