@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.5
+    restart: always
+    container_name: mariadb_container
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: project
+      MYSQL_USER: manager
+      MYSQL_PASSWORD: qwer1234
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_container
+    depends_on:
+      - mariadb
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "mysql+aiomysql://manager:qwer1234@mariadb:3306/project"
+
+volumes:
+  mariadb_data:
+    driver: local
