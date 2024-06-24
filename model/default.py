@@ -2,6 +2,9 @@ from pydantic import BaseModel, Field, model_validator
 from typing import Any, Union
 from enum import Enum
 
+from beanie import Document, Indexed
+import datetime as dt
+
 class DefaultIn(BaseModel):
     '''
     @var service_key : 공공데이터포털에서 발급받은 인증키
@@ -22,3 +25,4 @@ class DefaultOut(BaseModel):
         header : Header
         body : Any
     response : Response
+    

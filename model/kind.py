@@ -1,4 +1,5 @@
-from .default import Enum, BaseModel, DefaultIn, DefaultOut
+from .default import Enum, BaseModel, DefaultIn, DefaultOut, Document
+
 
 class UpKind(str, Enum):
     all = -1
@@ -9,7 +10,7 @@ class UpKind(str, Enum):
 class KindIn(DefaultIn):
     up_kind_cd : UpKind
 
-class KindOut(DefaultOut):
+class KindOut(Document):
     class Response(DefaultOut.Response):
         class Items(BaseModel):
             class item(BaseModel):
@@ -18,3 +19,6 @@ class KindOut(DefaultOut):
             items : dict[str, list[item]]
         body : Items
     response : Response
+
+    class Settings:
+        name ='kind'

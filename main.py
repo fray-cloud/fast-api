@@ -4,6 +4,13 @@ from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
 import model
 import xmltodict
+import datetime as dt
+
+from beanie import PydanticObjectId
+from beanie.operators import In
+
+import os
+
 
 
 app = FastAPI()
@@ -26,6 +33,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# @app.on_event("startup")
+# async def start_db():
+#     await model.mongodb.connect()
+
 
 @app.get("/")
 async def get_root():
@@ -83,12 +95,31 @@ async def get_sido(item : model.SidoIn = Depends()):
     for key in model.SidoOut.Response.Items.item.model_fields.keys():
         error_code.update({key : 'error'})
     res_json = change_json(res, error_code)
-    # await model.mongodb.engine.save()
+    # step 1
+    print(f"res_json : {res_json}")
+    document = model.SidoOut(**res_json)
+    document_count = await document.find().count()
+    if document_count == 0:
+        await document.insert()
+    else:
+        test = document.find_one()
+        print(test)
+    
+    
     return res_json
+
+@app.get("/sido/count", response_model=model.SidoOut)
+async def get_sido_count():
+    document_find = model.SidoOut.find(
+        model.SidoOut.site_updated == dt.date.today()
+    )
+    print(await document_find.to_list())
+    pass
+
 
 
 @app.get("/sigungu", response_model=model.SigunguOut)
-def get_sigungu(item : model.SigunguIn = Depends()):
+async def get_sigungu(item : model.SigunguIn = Depends()):
     res = requests.get(
         f'{endpoint}/sigungu?serviceKey={encoding}', 
         params=item.model_dump(by_alias=True)
@@ -106,6 +137,9 @@ def get_sigungu(item : model.SigunguIn = Depends()):
     code = error_code if item.upr_cd != '-1' else no_data_code
     print('sigungu item.upr_cd', item.upr_cd, code)
     res_json = change_json(res,code)
+    # print('dma...')
+    # print(model.SigunguOut.response.body.items.get("upr_cd"))
+    await model.SigunguOut(sido_id=item.model_dump().get("upr_cd"), **res_json).insert()
     return res_json
 
 
