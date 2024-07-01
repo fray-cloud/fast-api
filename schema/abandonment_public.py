@@ -1,4 +1,4 @@
-from .default import Union, BaseModel, model_validator, DefaultIn, DefaultOut, Document
+from .default import Union, BaseModel, model_validator, DefaultIn, DefaultOut
 from .page import PageIn, PageOut
 
 class AbandonmentIn(DefaultIn, PageIn):
@@ -22,7 +22,7 @@ class AbandonmentIn(DefaultIn, PageIn):
             self.kind = None
         return self
 
-class AbandonmentOut(Document):
+class AbandonmentOut(BaseModel):
     class Response(DefaultOut.Response):
         class Items(PageOut):
             class item(BaseModel):

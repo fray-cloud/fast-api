@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field, model_validator
 from typing import Any, Union
 from enum import Enum
 
-from beanie import Document, Indexed
 import datetime as dt
 
 class DefaultIn(BaseModel):

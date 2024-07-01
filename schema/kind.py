@@ -1,4 +1,4 @@
-from .default import Enum, BaseModel, DefaultIn, DefaultOut, Document
+from .default import Enum, BaseModel, DefaultIn, DefaultOut
 
 
 class UpKind(str, Enum):
@@ -10,7 +10,7 @@ class UpKind(str, Enum):
 class KindIn(DefaultIn):
     up_kind_cd : UpKind
 
-class KindOut(Document):
+class KindOut(BaseModel):
     class Response(DefaultOut.Response):
         class Items(BaseModel):
             class item(BaseModel):

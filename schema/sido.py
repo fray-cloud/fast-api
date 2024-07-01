@@ -1,4 +1,4 @@
-from .default import DefaultIn, DefaultOut, BaseModel, Document, Union, dt
+from .default import DefaultIn, DefaultOut, BaseModel, Union, dt
 from .page import PageIn, PageOut
 from odmantic import Model, Field
 
@@ -7,7 +7,7 @@ from odmantic import Model, Field
 class SidoIn(DefaultIn, PageIn):
     pass
 
-class SidoOut(Document):
+class SidoOut(BaseModel):
     site_updated : dt.date = dt.date.today()
     class Response(DefaultOut.Response):
         class Items(PageOut):
