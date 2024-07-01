@@ -9,6 +9,7 @@ import datetime as dt
 from database.crud.sido import set, get
 
 import os
+import time
 
 
 
@@ -33,19 +34,97 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# @app.on_event("startup")
-# async def start_db():
-#     await model.mongodb.connect()
+SIDO_DATA = None
+SIGUNGU_DATA = list()
+KIND_DATA = list()
 
+@app.on_event("startup")
+def start():
+    global SIDO_DATA
+    global SIGUNGU_DATA
+    global KIND_DATA
+    TRAFFIC_TIME = 0.2
+    START_TIME = dt.datetime.now()
+    item = schema.SidoIn(numOfRows=17)
+    # get sido
+    res = requests.get(
+        f'{endpoint}/sido?serviceKey={encoding}',
+        params=item.model_dump(by_alias=True)
+        )
+    time.sleep(TRAFFIC_TIME)
+    print("get get sido")
+    error_code = {}
+    for key in schema.SidoOut.Response.Items.item.model_fields.keys():
+        error_code.update({key : 'error'})
+    res_json = change_json(res, error_code)
+    
+    SIDO_DATA = schema.SidoOut(**res_json)
+    # is ok
+    print(f"SIDO_DATA :: {SIDO_DATA}")
 
+    # get sigungu & sido count
+    COUNT = 0
+    for sido in SIDO_DATA.response.body.items['item']:
+        item = schema.SigunguIn(upr_cd=sido.orgCd)
+        res = requests.get(
+        f'{endpoint}/sigungu?serviceKey={encoding}', 
+        params=item.model_dump(by_alias=True)
+        )
+        time.sleep(TRAFFIC_TIME)
+        error_code = {}
+        for key in schema.SigunguOut.Response.Items.item.model_fields.keys():
+            error_code.update({key : 'error'})
+        res_json = change_json(res, error_code)
+        SIGUNGU_DATA.append({"upr_cd" : sido.orgCd, "item" : res_json})
+
+        item = schema.AbandonmentIn(upr_cd=sido.orgCd)
+        res_json = get_abandonment_public(item)
+        time.sleep(TRAFFIC_TIME)
+        res_json = schema.AbandonmentOut(**res_json)
+        sido.totalCount = res_json.response.body.totalCount
+        COUNT = COUNT + 1
+    # is ok
+    print(f"SIGUNGU_DATA :: {SIGUNGU_DATA}")
+    
+    # get kind
+    COUNT = 0
+    for up_kind in schema.kind.UpKind:
+        item = schema.KindIn(up_kind_cd=up_kind)
+        res = requests.get(
+        f'{endpoint}/kind?serviceKey={encoding}', 
+        params=item.model_dump(by_alias=True)
+        )
+        time.sleep(TRAFFIC_TIME)
+        print(f"get get sigungu {COUNT} times")
+        error_code = {}
+        no_data_code = {}
+        for key in schema.KindOut.Response.Items.item.model_fields.keys():
+            error_code.update({key : 'error'})
+            if key == "knm" :
+                no_data_code.update({key : '전체'})
+            else :
+                no_data_code.update({key : '-1'})
+        
+        code = error_code if item.up_kind_cd != '-1' else no_data_code
+        print(item.up_kind_cd, code)
+        res_json = change_json(res,code)
+        KIND_DATA.append({"up_kind_cd" : up_kind.value, "item" : res_json})
+        COUNT = COUNT + 1
+    # is ok
+    print(f"KIND_DATA :: {KIND_DATA}")
+    print(f"success spend time :: {dt.datetime.now() - START_TIME}")
+    
 @app.get("/")
 async def get_root():
+    print(f"SIDO_DATA :: {SIDO_DATA}")
+    print(f"SIGUNGU_DATA :: {SIGUNGU_DATA}")
+    print(f"KIND_DATA :: {KIND_DATA}")
     return {'hello' : 'world'}
 
 def change_json(data : requests.Response, error_code : dict):
     res = {}
-    print(f'raw data : \n{data.text}')
-    print(f'data request url : {data.url}')
+    # print(f'raw data : \n{data.text}')
+    # print(f'data request url : {data.url}')
     print(f'data request status : {data.status_code}')
     # print(f'error_code : {error_code}')
     try :
@@ -70,7 +149,7 @@ def change_json(data : requests.Response, error_code : dict):
         }
         res['response']['body']['items'] = {}
         res['response']['body']['items']['item'] = [error_code]
-        print(json.dumps(res, indent=2))
+        print(json.dumps(res))
         return res
     else:
         if data_json['response']['header']['resultCode'] != '00':
@@ -83,26 +162,9 @@ def change_json(data : requests.Response, error_code : dict):
             }
         return data_json
 
-# @app.post("/sido", response_model=model.SidoOut)
-# async def post_sido(item : model.SidoIn = Depends()):
-#     res = requests.get(
-#         f'{endpoint}/sido?serviceKey={encoding}',
-#         params=item.model_dump(by_alias=True)
-#         )
-    
 
 @app.get("/sido/db", response_model=schema.SidoOut)
 async def get_sido_by_db():
-    # res = requests.get(
-    #     f'{endpoint}/sido?serviceKey={encoding}',
-    #     params=item.model_dump(by_alias=True)
-    #     )
-
-    # error_code = {}
-    # for key in schema.SidoOut.Response.Items.item.model_fields.keys():
-    #     error_code.update({key : 'error'})
-    # res_json = change_json(res, error_code)
-    # res_json = schema.SidoOut(**res_json)
     # step 1
     data = await get()
     print([schema.SidoOut.Response.Items.item(orgCd=item.orgCd, orgdownNm=item.orgdownNm) for item in data])
@@ -123,17 +185,8 @@ async def get_sido_by_db():
     return result
 
 @app.get("/sido", response_model=schema.SidoOut)
-def get_sido(item : schema.SidoIn = Depends()):
-    res = requests.get(
-        f'{endpoint}/sido?serviceKey={encoding}',
-        params=item.model_dump(by_alias=True)
-        )
-
-    error_code = {}
-    for key in schema.SidoOut.Response.Items.item.model_fields.keys():
-        error_code.update({key : 'error'})
-    res_json = change_json(res, error_code)
-    return res_json
+def get_sido():
+    return SIDO_DATA
 
 @app.get("/sido/count", response_model=schema.SidoOut)
 async def get_sido_count():
@@ -147,48 +200,19 @@ async def get_sido_count():
 
 @app.get("/sigungu", response_model=schema.SigunguOut)
 async def get_sigungu(item : schema.SigunguIn = Depends()):
-    res = requests.get(
-        f'{endpoint}/sigungu?serviceKey={encoding}', 
-        params=item.model_dump(by_alias=True)
-        )
-    
-    error_code = {}
-    no_data_code = {}
-    for key in schema.SigunguOut.Response.Items.item.model_fields.keys():
-        error_code.update({key : 'error'})
-        if key == "orgdownNm" :
-            no_data_code.update({key : '전체'})
-        else :
-            no_data_code.update({key : '-1'})
-    
-    code = error_code if item.upr_cd != '-1' else no_data_code
-    print('sigungu item.upr_cd', item.upr_cd, code)
-    res_json = change_json(res,code)
-    # print('dma...')
-    # print(model.SigunguOut.response.body.items.get("upr_cd"))
-    await schema.SigunguOut(sido_id=item.model_dump().get("upr_cd"), **res_json).insert()
+    res_json = None
+    for sigungu in SIGUNGU_DATA:
+        if sigungu["upr_cd"] == item.upr_cd:
+            res_json = sigungu["item"]
     return res_json
 
 
 @app.get("/kind", response_model=schema.KindOut)
 def get_kind(item : schema.KindIn = Depends()):
-    res = requests.get(
-        f'{endpoint}/kind?serviceKey={encoding}', 
-        params=item.model_dump(by_alias=True)
-        )
-    
-    error_code = {}
-    no_data_code = {}
-    for key in schema.KindOut.Response.Items.item.model_fields.keys():
-        error_code.update({key : 'error'})
-        if key == "knm" :
-            no_data_code.update({key : '전체'})
-        else :
-            no_data_code.update({key : '-1'})
-    
-    code = error_code if item.up_kind_cd != '-1' else no_data_code
-    print(item.up_kind_cd, code)
-    res_json = change_json(res,code)
+    res_json = None
+    for kind in KIND_DATA:
+        if kind["up_kind_cd"] == item.up_kind_cd:
+            res_json = kind["item"]
     return res_json
  
 @app.get("/abandonmentPublic", response_model=schema.AbandonmentOut)
