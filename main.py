@@ -23,7 +23,6 @@ origins = [
     'http://localhost:3001',
     'http://172.30.1.80:3000',
     "https://mini-project-l2dyt7ryh-fray-clouds-projects.vercel.app",
-    "https://mini-project-mocha.vercel.app",
 ]
 
 app.add_middleware(
