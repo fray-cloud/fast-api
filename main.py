@@ -7,6 +7,7 @@ import xmltodict
 import datetime as dt
 
 from database.crud.sido import set, get
+from typing import List
 
 import os
 import time
@@ -34,9 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SIDO_DATA = None
-SIGUNGU_DATA = list()
-KIND_DATA = list()
+SIDO_DATA : schema.SidoOut = None
+SIGUNGU_DATA : List[dict] = list()
+KIND_DATA : List[dict] = list()
 
 @app.on_event("startup")
 def start():
@@ -116,10 +117,13 @@ def start():
     
 @app.get("/")
 async def get_root():
-    print(f"SIDO_DATA :: {SIDO_DATA}")
-    print(f"SIGUNGU_DATA :: {SIGUNGU_DATA}")
-    print(f"KIND_DATA :: {KIND_DATA}")
-    return {'hello' : 'world'}
+    return {
+        "default_data" : {
+            "SIDO_DATA" : SIDO_DATA.model_dump(),
+            "SIGUNGU_DATA" : SIGUNGU_DATA,
+            "KIND_DATA" : KIND_DATA,
+        }
+    }
 
 def change_json(data : requests.Response, error_code : dict):
     res = {}
